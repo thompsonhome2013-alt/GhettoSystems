@@ -110,8 +110,12 @@ class DeviceControlActivity : AppCompatActivity() {
                     updatePressure(pressure)
                     updatePowerButton()
                     tvLastUpdate.text = "Last update: ${timeFormat.format(Date())}"
-                }.onFailure {
-                    applyOfflineStatus()
+                }.onFailure { error ->
+                    if (AuthHelper.isAuthError(error.message)) {
+                        AuthHelper.handleAuthFailure(this@DeviceControlActivity, session)
+                    } else {
+                        applyOfflineStatus()
+                    }
                 }
                 scheduleNextRefresh()
             }

@@ -92,6 +92,10 @@ class HomeActivity : AppCompatActivity() {
                     handler.postDelayed(refreshRunnable, 5_000)
                 }.onFailure {
                     val message = it.message?.takeIf { msg -> msg.isNotBlank() } ?: "Could not load devices"
+                    if (AuthHelper.isAuthError(message)) {
+                        AuthHelper.handleAuthFailure(this@HomeActivity, session)
+                        return@onFailure
+                    }
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 }
             }

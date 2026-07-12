@@ -28,7 +28,7 @@ class BiometricLoginManager(private val context: Context) {
 
     fun canUseBiometric(): Boolean {
         val result = BiometricManager.from(context)
-            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .canAuthenticate(ALLOWED_AUTHENTICATORS)
         return result == BiometricManager.BIOMETRIC_SUCCESS
     }
 
@@ -90,13 +90,16 @@ class BiometricLoginManager(private val context: Context) {
             .setTitle(activity.getString(R.string.biometric_prompt_title))
             .setSubtitle(activity.getString(R.string.biometric_prompt_subtitle))
             .setNegativeButtonText(activity.getString(R.string.biometric_use_password))
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .setAllowedAuthenticators(ALLOWED_AUTHENTICATORS)
             .build()
 
         prompt.authenticate(promptInfo)
     }
 
     companion object {
+        private const val ALLOWED_AUTHENTICATORS =
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
         private const val PREFS_FILE = "gs2_biometric_login"
         private const val KEY_ENABLED = "enabled"
         private const val KEY_EMAIL = "email"

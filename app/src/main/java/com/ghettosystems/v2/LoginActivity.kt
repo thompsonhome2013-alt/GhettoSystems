@@ -17,12 +17,23 @@ class LoginActivity : AppCompatActivity() {
         session = SessionManager(this)
         biometricLogin = BiometricLoginManager(this)
 
-        if (session.isLoggedIn()) {
-            LoginHelper.goHome(this)
-            return
-        }
-
         setContentView(R.layout.activity_login)
+
+        if (session.isLoggedIn()) {
+            val token = session.token
+            if (!token.isNullOrBlank()) {
+                Gs2Api.listDevices(token) { result ->
+                    runOnUiThread {
+                        if (result.isSuccess) {
+                            LoginHelper.goHome(this)
+                            finish()
+                        } else if (AuthHelper.isAuthError(result.exceptionOrNull()?.message)) {
+                            session.clear()
+                        }
+                    }
+                }
+            }
+        }
 
         val etEmail = findViewById<TextInputEditText>(R.id.et_email)
         val etPassword = findViewById<TextInputEditText>(R.id.et_password)

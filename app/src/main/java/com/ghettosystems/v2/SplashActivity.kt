@@ -20,17 +20,18 @@ class SplashActivity : AppCompatActivity() {
         session = SessionManager(this)
         biometricLogin = BiometricLoginManager(this)
 
-        if (session.isLoggedIn()) {
-            LoginHelper.goHome(this)
-            return
-        }
-
         setContentView(R.layout.activity_splash)
 
-        if (biometricLogin.isEnabled() && biometricLogin.canUseBiometric()) {
-            window.decorView.post { startBiometricLogin() }
-        } else {
-            scheduleLoginAfterSplash()
+        when {
+            biometricLogin.isEnabled() && biometricLogin.canUseBiometric() -> {
+                window.decorView.post { startBiometricLogin() }
+            }
+            session.isLoggedIn() -> {
+                resumeExistingSession()
+            }
+            else -> {
+                scheduleLoginAfterSplash()
+            }
         }
     }
 
@@ -40,6 +41,7 @@ class SplashActivity : AppCompatActivity() {
             onSuccess = {
                 val creds = biometricLogin.getStoredCredentials()
                 if (creds == null) {
+                    session.clear()
                     scheduleLoginAfterSplash()
                     return@authenticate
                 }
@@ -52,13 +54,38 @@ class SplashActivity : AppCompatActivity() {
                     offerBiometricEnrollment = false
                 )
             },
-            onUsePassword = { scheduleLoginAfterSplash() },
+            onUsePassword = {
+                session.clear()
+                scheduleLoginAfterSplash()
+            },
             onError = { message ->
                 if (message.isNotBlank()) {
                     LoginHelper.showError(this, message)
                 }
             }
         )
+    }
+
+    private fun resumeExistingSession() {
+        val token = session.token
+        if (token.isNullOrBlank()) {
+            session.clear()
+            scheduleLoginAfterSplash()
+            return
+        }
+
+        Gs2Api.listDevices(token) { result ->
+            runOnUiThread {
+                if (result.isSuccess) {
+                    LoginHelper.goHome(this)
+                } else if (AuthHelper.isAuthError(result.exceptionOrNull()?.message)) {
+                    session.clear()
+                    scheduleLoginAfterSplash()
+                } else {
+                    LoginHelper.goHome(this)
+                }
+            }
+        }
     }
 
     private fun scheduleLoginAfterSplash() {

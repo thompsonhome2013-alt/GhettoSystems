@@ -30,7 +30,11 @@ object LoginHelper {
                 onFinished?.invoke()
                 result.onSuccess { json ->
                     if (!json.optBoolean("ok")) {
-                        showError(activity, json.optString("error", "Login failed"))
+                        val error = json.optString("error", "Login failed")
+                        if (AuthHelper.isAuthError(error)) {
+                            session.clear()
+                        }
+                        showError(activity, error)
                         return@onSuccess
                     }
                     saveSession(session, json.getJSONObject("data"))
