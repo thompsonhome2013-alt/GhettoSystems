@@ -21,7 +21,12 @@
     <string name="widget_power">Power</string>
     <string name="widget_pressure">Pressure</string>
     <string name="control">Control</string>
+    <string name="dashboard_intro">Your secure IoT control panel is ready.</string>
     <string name="dashboard_refresh_hint">Status refreshes every 5 seconds</string>
+    <string name="welcome_back_user">Welcome back, %1$s!</string>
+    <string name="logout">Logout</string>
+    <string name="no_devices_title">No devices paired to your account yet.</string>
+    <string name="no_devices_subtitle">Tap + to pair your air compressor using Device ID, Serial, and Pairing Code from your UNO Q.</string>
     <string name="no_devices_hint">No devices paired yet. Tap + to add your air compressor.</string>
     <string name="add_device">Add device</string>
     <string name="pair_device">Pair Device</string>

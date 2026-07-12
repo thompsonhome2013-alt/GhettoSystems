@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -20,7 +22,6 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var adapter: DeviceAdapter
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { loadDevices() }
-    private var hasLoadedOnce = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +34,22 @@ class HomeActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_home)
+
+        val displayName = session.username?.takeIf { it.isNotBlank() } ?: getString(R.string.email)
+        findViewById<TextView>(R.id.tv_user_email).text = displayName
+        findViewById<TextView>(R.id.tv_welcome).text =
+            getString(R.string.welcome_back_user, displayName)
+
+        findViewById<LinearLayout>(R.id.btn_user_menu).setOnClickListener { view ->
+            PopupMenu(this, view).apply {
+                menu.add(getString(R.string.logout))
+                setOnMenuItemClickListener {
+                    confirmLogout()
+                    true
+                }
+                show()
+            }
+        }
 
         adapter = DeviceAdapter { device ->
             startActivity(DeviceRegistry.controlIntent(this, device.devId, device.devSerial))
@@ -49,17 +66,7 @@ class HomeActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                MaterialAlertDialogBuilder(this@HomeActivity, R.style.Theme_GhettoSystems2_Dialog)
-                    .setTitle("Logout?")
-                    .setMessage("Return to login?")
-                    .setPositiveButton("Yes") { _, _ ->
-                        session.clear()
-                        startActivity(Intent(this@HomeActivity, SplashActivity::class.java)
-                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
-                        finish()
-                    }
-                    .setNegativeButton("No", null)
-                    .show()
+                confirmLogout()
             }
         })
     }
@@ -74,21 +81,34 @@ class HomeActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    private fun confirmLogout() {
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+            .setTitle("Logout?")
+            .setMessage("Return to login?")
+            .setPositiveButton("Yes") { _, _ ->
+                session.clear()
+                startActivity(
+                    Intent(this, SplashActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                finish()
+            }
+            .setNegativeButton("No", null)
+            .show()
+    }
+
     private fun loadDevices() {
         val token = session.token ?: return
-        val statusView = findViewById<TextView>(R.id.tv_status)
-        if (!hasLoadedOnce) {
-            statusView.visibility = View.VISIBLE
-        }
 
         Gs2Api.listDevices(token) { result ->
             runOnUiThread {
-                statusView.visibility = View.GONE
                 result.onSuccess { devices ->
-                    hasLoadedOnce = true
                     adapter.submit(devices)
-                    findViewById<TextView>(R.id.tv_empty).visibility =
-                        if (devices.isEmpty()) View.VISIBLE else View.GONE
+                    val isEmpty = devices.isEmpty()
+                    findViewById<View>(R.id.empty_panel).visibility =
+                        if (isEmpty) View.VISIBLE else View.GONE
+                    findViewById<RecyclerView>(R.id.recycler_devices).visibility =
+                        if (isEmpty) View.GONE else View.VISIBLE
                     val countLabel = if (devices.size == 1) "device" else "devices"
                     findViewById<TextView>(R.id.tv_refresh_hint).text =
                         getString(R.string.dashboard_refresh_hint) +
