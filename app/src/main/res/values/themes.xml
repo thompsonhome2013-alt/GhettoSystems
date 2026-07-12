@@ -1,0 +1,18 @@
+<resources>
+    <style name="Theme.GhettoSystems2" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="android:statusBarColor">@color/colorBackground</item>
+        <item name="android:navigationBarColor">@color/colorBackground</item>
+    </style>
+    <style name="Theme.GhettoSystems2.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/colorPrimary</item>
+    </style>
+    <style name="Theme.GhettoSystems2.Splash" parent="Theme.GhettoSystems2">
+        <item name="android:windowBackground">@color/splashBlack</item>
+        <item name="android:statusBarColor">@color/splashBlack</item>
+        <item name="android:navigationBarColor">@color/splashBlack</item>
+    </style>
+</resources>
