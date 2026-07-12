@@ -84,6 +84,10 @@ class HomeActivity : AppCompatActivity() {
                     adapter.submit(devices)
                     findViewById<TextView>(R.id.tv_empty).visibility =
                         if (devices.isEmpty()) View.VISIBLE else View.GONE
+                    val countLabel = if (devices.size == 1) "device" else "devices"
+                    findViewById<TextView>(R.id.tv_refresh_hint).text =
+                        getString(R.string.dashboard_refresh_hint) +
+                            " · ${devices.size} $countLabel paired"
                     handler.removeCallbacks(refreshRunnable)
                     handler.postDelayed(refreshRunnable, 5_000)
                 }.onFailure {

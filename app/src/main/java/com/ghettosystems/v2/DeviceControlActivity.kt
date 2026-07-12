@@ -62,6 +62,8 @@ class DeviceControlActivity : AppCompatActivity() {
         statusDot = findViewById(R.id.status_dot)
         tvLastUpdate = findViewById(R.id.tv_last_update)
 
+        val typeConfig = DeviceRegistry.configFor(devId)
+        findViewById<TextView>(R.id.tv_page_title).text = typeConfig.pageTitle
         findViewById<TextView>(R.id.tv_device_meta).text = "$devId · $devSerial"
         findViewById<View>(R.id.power_button_container).setOnClickListener { togglePower() }
 
@@ -145,10 +147,8 @@ class DeviceControlActivity : AppCompatActivity() {
             runOnUiThread {
                 busy = false
                 setPowerButtonEnabled(deviceOnline)
-                result.onSuccess { power ->
-                    currentPower = power
-                    updatePowerButton()
-                    tvLastUpdate.text = "Last update: ${timeFormat.format(Date())}"
+                result.onSuccess {
+                    refreshStatus()
                 }.onFailure {
                     Toast.makeText(this, it.message ?: "Command failed", Toast.LENGTH_SHORT).show()
                 }

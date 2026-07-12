@@ -18,6 +18,10 @@
     <string name="back_to_login">Back to Login</string>
     <string name="enter_your_email_and_we_ll_send_you_a_reset_link">Enter your email and we\'ll send you a reset link</string>
     <string name="your_devices">Your Devices</string>
+    <string name="widget_power">Power</string>
+    <string name="widget_pressure">Pressure</string>
+    <string name="control">Control</string>
+    <string name="dashboard_refresh_hint">Status refreshes every 5 seconds</string>
     <string name="no_devices_hint">No devices paired yet. Tap + to add your air compressor.</string>
     <string name="add_device">Add device</string>
     <string name="pair_device">Pair Device</string>

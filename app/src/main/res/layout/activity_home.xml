@@ -47,6 +47,16 @@
             android:layout_height="0dp"
             android:layout_marginTop="16dp"
             android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_refresh_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="@string/dashboard_refresh_hint"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

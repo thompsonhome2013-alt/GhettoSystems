@@ -7,12 +7,14 @@ object DeviceRegistry {
 
     data class TypeConfig(
         val label: String,
+        val pageTitle: String,
         val activityClass: Class<out AppCompatActivity>,
     )
 
     private val registry = mapOf(
         "GS2AIR" to TypeConfig(
             label = "UNO-AIR v3.2",
+            pageTitle = "Air Compressor",
             activityClass = DeviceControlActivity::class.java,
         ),
     )
@@ -20,6 +22,7 @@ object DeviceRegistry {
     fun configFor(devId: String): TypeConfig {
         return registry[devId.uppercase()] ?: TypeConfig(
             label = devId,
+            pageTitle = devId,
             activityClass = DeviceControlActivity::class.java,
         )
     }
