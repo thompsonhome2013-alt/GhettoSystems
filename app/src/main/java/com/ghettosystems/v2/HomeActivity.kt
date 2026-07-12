@@ -34,10 +34,7 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.activity_home)
 
         adapter = DeviceAdapter { device ->
-            val intent = Intent(this, DeviceControlActivity::class.java)
-            intent.putExtra("dev_id", device.devId)
-            intent.putExtra("dev_serial", device.devSerial)
-            startActivity(intent)
+            startActivity(DeviceRegistry.controlIntent(this, device.devId, device.devSerial))
         }
 
         findViewById<RecyclerView>(R.id.recycler_devices).apply {
