@@ -20,6 +20,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var adapter: DeviceAdapter
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { loadDevices() }
+    private var hasLoadedOnce = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,12 +76,16 @@ class HomeActivity : AppCompatActivity() {
 
     private fun loadDevices() {
         val token = session.token ?: return
-        findViewById<TextView>(R.id.tv_status).visibility = View.VISIBLE
+        val statusView = findViewById<TextView>(R.id.tv_status)
+        if (!hasLoadedOnce) {
+            statusView.visibility = View.VISIBLE
+        }
 
         Gs2Api.listDevices(token) { result ->
             runOnUiThread {
-                findViewById<TextView>(R.id.tv_status).visibility = View.GONE
+                statusView.visibility = View.GONE
                 result.onSuccess { devices ->
+                    hasLoadedOnce = true
                     adapter.submit(devices)
                     findViewById<TextView>(R.id.tv_empty).visibility =
                         if (devices.isEmpty()) View.VISIBLE else View.GONE
