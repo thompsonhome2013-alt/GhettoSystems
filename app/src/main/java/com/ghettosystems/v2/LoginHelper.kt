@@ -37,7 +37,8 @@ object LoginHelper {
                         showError(activity, error)
                         return@onSuccess
                     }
-                    saveSession(session, json.getJSONObject("data"))
+                    saveSession(session, json.getJSONObject("data"), email)
+                    DeviceRegistry.refresh(session.token.orEmpty())
                     if (biometricLogin.isEnabled()) {
                         biometricLogin.saveCredentials(email, password)
                         goHome(activity)
@@ -53,10 +54,11 @@ object LoginHelper {
         }
     }
 
-    private fun saveSession(session: SessionManager, data: JSONObject) {
+    private fun saveSession(session: SessionManager, data: JSONObject, email: String) {
         session.token = data.getString("token")
         session.userId = data.getInt("user_id")
         session.username = data.optString("username")
+        session.email = email
     }
 
     private fun offerBiometricEnrollment(

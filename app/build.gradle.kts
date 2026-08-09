@@ -18,8 +18,8 @@ android {
         applicationId = "com.ghettosystems.v2"
         minSdk = 31
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.1"
+        versionCode = 25
+        versionName = "2.4.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -38,6 +38,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -47,6 +48,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.biometric)
     implementation(libs.security.crypto)
     implementation(libs.okhttp)
@@ -75,24 +77,56 @@ fun runAdb(adb: String, vararg args: String): String {
     return output.trim()
 }
 
-fun hasConnectedDevice(adb: String): Boolean =
-    runAdb(adb, "devices").lineSequence().any { it.endsWith("\tdevice") }
+fun connectedDeviceSerials(adb: String): List<String> =
+    runAdb(adb, "devices").lineSequence()
+        .map { it.trim() }
+        .filter { it.endsWith("\tdevice") }
+        .map { it.substringBefore("\t") }
+        .toList()
+
+fun isEmulator(adb: String, serial: String): Boolean {
+    if (serial.startsWith("emulator-")) return true
+    return try {
+        val qemu = runAdb(adb, "-s", serial, "shell", "getprop", "ro.kernel.qemu")
+        if (qemu == "1") return true
+        val hardware = runAdb(adb, "-s", serial, "shell", "getprop", "ro.hardware")
+        hardware.contains("goldfish", ignoreCase = true) || hardware.contains("ranchu", ignoreCase = true)
+    } catch (_: GradleException) {
+        false
+    }
+}
+
+fun connectedPhysicalDevices(adb: String): List<String> =
+    connectedDeviceSerials(adb).filterNot { isEmulator(adb, it) }
 
 tasks.register("installDebugOnDevice") {
     group = "install"
+    description = "Install debug APK on physical devices only (skips emulators)"
     doLast {
         val apk = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
         if (!apk.exists()) throw GradleException("APK not found")
         val adb = resolveAdbPath()
-        if (!hasConnectedDevice(adb)) {
-            logger.warn("No device connected — skipping install")
+        val physicalDevices = connectedPhysicalDevices(adb)
+        if (physicalDevices.isEmpty()) {
+            val allDevices = connectedDeviceSerials(adb)
+            if (allDevices.isEmpty()) {
+                logger.warn("No device connected — skipping install")
+            } else {
+                logger.warn("Only emulator(s) connected — skipping install (${allDevices.joinToString()})")
+            }
             return@doLast
         }
-        runAdb(adb, "install", "-r", apk.absolutePath)
-        logger.lifecycle("Installed ${apk.name}")
+        physicalDevices.forEach { serial ->
+            runAdb(adb, "-s", serial, "install", "-r", apk.absolutePath)
+            logger.lifecycle("Installed ${apk.name} on $serial")
+        }
     }
 }
 
 afterEvaluate {
     tasks.named("assembleDebug").configure { finalizedBy("installDebugOnDevice") }
+    tasks.named("installDebug").configure {
+        enabled = false
+        logger.lifecycle("installDebug is disabled — use assembleDebug (installs to physical devices only)")
+    }
 }

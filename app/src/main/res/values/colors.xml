@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#0052FF</color>
+    <color name="colorPrimaryDark">#003BB8</color>
     <color name="colorOnPrimary">#FFFFFF</color>
     <color name="colorBackground">#0A0B0D</color>
     <color name="colorSurface">#1C1E22</color>
+    <color name="red_inactive">#4C1414</color>
     <color name="colorOnBackground">#FFFFFF</color>
     <color name="textSecondary">#B0B0B0</color>
     <color name="splashBlack">#000000</color>
     <color name="green_active">#22C55E</color>
     <color name="red_active">#EF4444</color>
     <color name="border">#2A2D33</color>
+    <color name="card_garage_bg">#101828</color>
+    <color name="card_generic_bg">#0A0B0D</color>
 </resources>

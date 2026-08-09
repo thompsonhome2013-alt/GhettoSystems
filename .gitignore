@@ -27,3 +27,7 @@ Desktop.ini
 *.jks
 *.keystore
 google-services.json
+# Local logs
+emulator-start.log*
+*.log
+

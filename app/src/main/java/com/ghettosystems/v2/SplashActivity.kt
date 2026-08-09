@@ -77,6 +77,7 @@ class SplashActivity : AppCompatActivity() {
         Gs2Api.listDevices(token) { result ->
             runOnUiThread {
                 if (result.isSuccess) {
+                    DeviceRegistry.refresh(token)
                     LoginHelper.goHome(this)
                 } else if (AuthHelper.isAuthError(result.exceptionOrNull()?.message)) {
                     session.clear()
