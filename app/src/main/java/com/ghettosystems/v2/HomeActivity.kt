@@ -137,7 +137,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun confirmLogout() {
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle("Logout?")
             .setMessage("Return to login?")
             .setPositiveButton("Yes") { _, _ ->
@@ -183,7 +183,7 @@ class HomeActivity : AppCompatActivity() {
             refreshLabels(selected)
         }
 
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle(R.string.set_cutout_title)
             .setView(view)
             .setPositiveButton(R.string.set_cutout_save) { _, _ ->
@@ -280,7 +280,7 @@ class HomeActivity : AppCompatActivity() {
             return
         }
 
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle(R.string.garage_door_confirm_title)
             .setMessage(R.string.garage_door_confirm_message)
             .setPositiveButton(R.string.open_garage_door) { _, _ -> pulseGarageDoor(device) }

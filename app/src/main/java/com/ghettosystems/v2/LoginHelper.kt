@@ -67,7 +67,7 @@ object LoginHelper {
         password: String,
         biometricLogin: BiometricLoginManager
     ) {
-        MaterialAlertDialogBuilder(activity, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(activity, R.style.Theme_GhettoSystems_Dialog)
             .setTitle(R.string.enable_biometric_title)
             .setMessage(R.string.enable_biometric_message)
             .setPositiveButton(R.string.enable_biometric_positive) { dialog, _ ->
@@ -91,7 +91,7 @@ object LoginHelper {
     }
 
     fun showError(activity: AppCompatActivity, message: String) {
-        MaterialAlertDialogBuilder(activity, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(activity, R.style.Theme_GhettoSystems_Dialog)
             .setTitle("Login")
             .setMessage(message)
             .setPositiveButton("OK", null)

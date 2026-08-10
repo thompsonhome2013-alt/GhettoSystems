@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.GhettoSystems2" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.GhettoSystems" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorOnPrimary">@color/colorOnPrimary</item>
         <item name="android:colorBackground">@color/colorBackground</item>
@@ -7,10 +7,10 @@
         <item name="android:statusBarColor">@color/colorBackground</item>
         <item name="android:navigationBarColor">@color/colorBackground</item>
     </style>
-    <style name="Theme.GhettoSystems2.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+    <style name="Theme.GhettoSystems.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorPrimary">@color/colorPrimary</item>
     </style>
-    <style name="Theme.GhettoSystems2.Splash" parent="Theme.GhettoSystems2">
+    <style name="Theme.GhettoSystems.Splash" parent="Theme.GhettoSystems">
         <item name="android:windowBackground">@color/splashBlack</item>
         <item name="android:statusBarColor">@color/splashBlack</item>
         <item name="android:navigationBarColor">@color/splashBlack</item>

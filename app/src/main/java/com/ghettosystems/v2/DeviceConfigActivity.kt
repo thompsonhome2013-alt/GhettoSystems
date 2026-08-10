@@ -247,7 +247,7 @@ class DeviceConfigActivity : AppCompatActivity() {
 
     private fun confirmUnpair() {
         val token = session.token ?: return
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle(R.string.unpair_confirm_title)
             .setMessage(R.string.unpair_confirm_message)
             .setPositiveButton(R.string.unpair_device) { _, _ ->

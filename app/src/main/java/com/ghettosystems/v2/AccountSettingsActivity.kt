@@ -158,7 +158,7 @@ class AccountSettingsActivity : AppCompatActivity() {
 
     private fun confirmUnpair(device: Gs2Api.Device) {
         val token = session.token ?: return
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle(R.string.unpair_confirm_title)
             .setMessage(R.string.unpair_confirm_message)
             .setPositiveButton(R.string.unpair_device) { _, _ ->
@@ -225,7 +225,7 @@ class AccountSettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmLogout() {
-        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems2_Dialog)
+        MaterialAlertDialogBuilder(this, R.style.Theme_GhettoSystems_Dialog)
             .setTitle("Logout?")
             .setMessage("Return to login?")
             .setPositiveButton("Yes") { _, _ ->
