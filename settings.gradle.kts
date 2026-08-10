@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Ghetto Systems 2"
+rootProject.name = "Ghetto Systems"
 include(":app")
