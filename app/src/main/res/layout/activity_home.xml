@@ -110,6 +110,19 @@
     </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_assistant"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="140dp"
+        android:contentDescription="@string/assistant_title"
+        app:backgroundTint="@color/colorSurface"
+        app:borderWidth="1dp"
+        app:srcCompat="@android:drawable/ic_menu_help"
+        app:tint="@color/colorPrimary" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

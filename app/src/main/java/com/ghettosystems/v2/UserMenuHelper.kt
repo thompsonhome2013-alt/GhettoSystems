@@ -47,6 +47,16 @@ object UserMenuHelper {
                 }
             }
 
+            popupView.findViewById<TextView>(R.id.menu_assistant)?.setOnClickListener {
+                popup.dismiss()
+                activity.startActivity(Intent(activity, AssistantActivity::class.java))
+            }
+
+            popupView.findViewById<TextView>(R.id.menu_mcp)?.setOnClickListener {
+                popup.dismiss()
+                activity.startActivity(Intent(activity, McpServersActivity::class.java))
+            }
+
             popupView.findViewById<TextView>(R.id.menu_logout).setOnClickListener {
                 popup.dismiss()
                 onLogout()

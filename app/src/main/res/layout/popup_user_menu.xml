@@ -22,6 +22,46 @@
         android:background="@color/border" />
 
     <TextView
+        android:id="@+id/menu_assistant"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingStart="20dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="14dp"
+        android:text="@string/assistant_menu"
+        android:textColor="@color/colorOnBackground"
+        android:textSize="15sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border" />
+
+    <TextView
+        android:id="@+id/menu_mcp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingStart="20dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="14dp"
+        android:text="@string/mcp_menu"
+        android:textColor="@color/colorOnBackground"
+        android:textSize="15sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border" />
+
+    <TextView
         android:id="@+id/menu_account_settings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

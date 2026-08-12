@@ -111,6 +111,10 @@ class HomeActivity : AppCompatActivity() {
             adapter = this@HomeActivity.adapter
         }
 
+        findViewById<FloatingActionButton>(R.id.fab_assistant).setOnClickListener {
+            startActivity(Intent(this, AssistantActivity::class.java))
+        }
+
         findViewById<FloatingActionButton>(R.id.fab_add).setOnClickListener {
             startActivity(Intent(this, RegisterDeviceActivity::class.java))
         }

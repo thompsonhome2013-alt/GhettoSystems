@@ -11,7 +11,51 @@ import java.util.concurrent.TimeUnit
 object Gs2Api {
     const val BASE = "https://www.thompsonized.org/api/v2/api"
     private val client = OkHttpClient()
+    /** Longer timeouts for multi-step agent + Evo-X LLM. */
+    private val llmClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(300, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .callTimeout(320, TimeUnit.SECONDS)
+        .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    data class LlmChatResult(
+        val reply: String,
+        val model: String?,
+        val toolsUsed: List<String>,
+        val threadId: String?,
+        val latencyMs: Int?,
+        val needsConfirm: Boolean,
+        val agentRounds: Int?,
+    )
+
+    data class LlmMessage(
+        val role: String,
+        val content: String,
+        val createdAt: String? = null,
+    )
+
+    data class McpServer(
+        val id: Int,
+        val name: String,
+        val slug: String,
+        val transport: String,
+        val url: String,
+        val command: String,
+        val enabled: Boolean,
+        val requireConfirm: Boolean,
+        val timeoutSec: Int,
+        val toolsCount: Int,
+        val lastError: String?,
+        val hasAuthToken: Boolean,
+        val tools: List<McpTool> = emptyList(),
+    )
+
+    data class McpTool(
+        val name: String,
+        val description: String,
+    )
 
     data class Endpoint(
         val role: String,
@@ -566,6 +610,353 @@ object Gs2Api {
             override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
             override fun onResponse(call: Call, response: Response) {
                 callback(Result.success(parseJson(response)))
+            }
+        })
+    }
+
+    /**
+     * Home assistant chat (Evo-X Ollama + tools via cloud).
+     * POST api/llm_chat.php
+     */
+    fun llmChat(
+        token: String,
+        message: String,
+        threadId: String? = null,
+        newThread: Boolean = false,
+        callback: (Result<LlmChatResult>) -> Unit,
+    ) {
+        val payload = JSONObject()
+            .put("message", message)
+            .put("stream", false)
+        if (newThread) {
+            payload.put("new_thread", true)
+        } else if (!threadId.isNullOrBlank()) {
+            payload.put("thread_id", threadId)
+        }
+        val body = payload.toString().toRequestBody(jsonType)
+        val request = Request.Builder()
+            .url("$BASE/llm_chat.php")
+            .header("Authorization", "Bearer $token")
+            .header("Accept", "application/json")
+            .post(body)
+            .build()
+
+        llmClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    val err = json.optString("error", "Assistant request failed")
+                    val code = response.code
+                    callback(
+                        Result.failure(
+                            Exception(if (code in 400..599) "$err (HTTP $code)" else err)
+                        )
+                    )
+                    return
+                }
+                val data = json.optJSONObject("data") ?: JSONObject()
+                val tools = mutableListOf<String>()
+                val arr = data.optJSONArray("tools_used")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val t = arr.optString(i, "").trim()
+                        if (t.isNotEmpty()) tools.add(t)
+                    }
+                }
+                val modelRaw = if (data.isNull("model")) "" else data.optString("model", "")
+                val threadRaw = if (data.isNull("thread_id")) "" else data.optString("thread_id", "")
+                callback(
+                    Result.success(
+                        LlmChatResult(
+                            reply = data.optString("reply", "").ifBlank {
+                                data.optString("message", "No reply")
+                            },
+                            model = modelRaw.takeIf { it.isNotBlank() },
+                            toolsUsed = tools,
+                            threadId = threadRaw.takeIf { it.isNotBlank() },
+                            latencyMs = if (data.has("latency_ms") && !data.isNull("latency_ms")) {
+                                data.optInt("latency_ms")
+                            } else {
+                                null
+                            },
+                            needsConfirm = data.optBoolean("needs_confirm", false),
+                            agentRounds = if (data.has("agent_rounds") && !data.isNull("agent_rounds")) {
+                                data.optInt("agent_rounds")
+                            } else {
+                                null
+                            },
+                        )
+                    )
+                )
+            }
+        })
+    }
+
+    fun llmHistoryLoad(
+        token: String,
+        threadId: String? = null,
+        callback: (Result<Pair<String?, List<LlmMessage>>>) -> Unit,
+    ) {
+        val url = if (!threadId.isNullOrBlank()) {
+            "$BASE/llm_history.php?thread_id=$threadId"
+        } else {
+            "$BASE/llm_history.php"
+        }
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    // History optional — treat as empty rather than hard fail
+                    if (response.code == 503) {
+                        callback(Result.success(null to emptyList()))
+                        return
+                    }
+                    callback(Result.failure(Exception(json.optString("error", "History failed"))))
+                    return
+                }
+                val data = json.optJSONObject("data") ?: JSONObject()
+                val tid = if (data.isNull("thread_id")) null
+                else data.optString("thread_id", "").takeIf { it.isNotBlank() }
+                val msgs = mutableListOf<LlmMessage>()
+                val arr = data.optJSONArray("messages")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val m = arr.optJSONObject(i) ?: continue
+                        val role = m.optString("role", "")
+                        val content = m.optString("content", "")
+                        if (role.isBlank() || content.isBlank()) continue
+                        if (role != "user" && role != "assistant") continue
+                        val created = if (m.isNull("created_at")) null
+                        else m.optString("created_at", "").takeIf { it.isNotBlank() }
+                        msgs.add(
+                            LlmMessage(
+                                role = role,
+                                content = content,
+                                createdAt = created,
+                            )
+                        )
+                    }
+                }
+                callback(Result.success(tid to msgs))
+            }
+        })
+    }
+
+    fun mcpListServers(token: String, callback: (Result<List<McpServer>>) -> Unit) {
+        val request = Request.Builder()
+            .url("$BASE/mcp_servers.php")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    callback(Result.failure(Exception(json.optString("error", "MCP list failed"))))
+                    return
+                }
+                val arr = json.optJSONObject("data")?.optJSONArray("servers") ?: JSONArray()
+                val out = mutableListOf<McpServer>()
+                for (i in 0 until arr.length()) {
+                    parseMcpServer(arr.optJSONObject(i))?.let { out.add(it) }
+                }
+                callback(Result.success(out))
+            }
+        })
+    }
+
+    fun mcpCreateServer(
+        token: String,
+        name: String,
+        transport: String,
+        url: String,
+        command: String,
+        authToken: String,
+        enabled: Boolean,
+        requireConfirm: Boolean,
+        callback: (Result<McpServer>) -> Unit,
+    ) {
+        val payload = JSONObject()
+            .put("action", "create")
+            .put("name", name)
+            .put("transport", transport)
+            .put("url", url)
+            .put("command", command)
+            .put("enabled", enabled)
+            .put("require_confirm", requireConfirm)
+        if (authToken.isNotBlank()) payload.put("auth_token", authToken)
+        mcpPostServer(token, payload, callback)
+    }
+
+    fun mcpUpdateServer(
+        token: String,
+        id: Int,
+        name: String,
+        transport: String,
+        url: String,
+        command: String,
+        authToken: String?,
+        enabled: Boolean,
+        requireConfirm: Boolean,
+        callback: (Result<McpServer>) -> Unit,
+    ) {
+        val payload = JSONObject()
+            .put("action", "update")
+            .put("id", id)
+            .put("name", name)
+            .put("transport", transport)
+            .put("url", url)
+            .put("command", command)
+            .put("enabled", enabled)
+            .put("require_confirm", requireConfirm)
+        // null = leave token unchanged on server; empty string would clear if sent
+        if (authToken != null) payload.put("auth_token", authToken)
+        mcpPostServer(token, payload, callback)
+    }
+
+    fun mcpDeleteServer(token: String, id: Int, callback: (Result<Boolean>) -> Unit) {
+        val payload = JSONObject().put("action", "delete").put("id", id)
+            .toString().toRequestBody(jsonType)
+        val request = Request.Builder()
+            .url("$BASE/mcp_servers.php")
+            .header("Authorization", "Bearer $token")
+            .post(payload)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    callback(Result.failure(Exception(json.optString("error", "Delete failed"))))
+                    return
+                }
+                callback(Result.success(true))
+            }
+        })
+    }
+
+    fun mcpTestServer(token: String, id: Int, callback: (Result<McpServer>) -> Unit) {
+        val payload = JSONObject().put("action", "test").put("id", id)
+            .toString().toRequestBody(jsonType)
+        val request = Request.Builder()
+            .url("$BASE/mcp_servers.php")
+            .header("Authorization", "Bearer $token")
+            .post(payload)
+            .build()
+        // tests can take a while
+        llmClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    callback(Result.failure(Exception(json.optString("error", "Test failed"))))
+                    return
+                }
+                val server = json.optJSONObject("data")?.optJSONObject("server")
+                    ?: json.optJSONObject("data")
+                val parsed = parseMcpServer(server)
+                if (parsed == null) {
+                    callback(Result.failure(Exception("Invalid server response")))
+                } else {
+                    callback(Result.success(parsed))
+                }
+            }
+        })
+    }
+
+    private fun mcpPostServer(
+        token: String,
+        payload: JSONObject,
+        callback: (Result<McpServer>) -> Unit,
+    ) {
+        val request = Request.Builder()
+            .url("$BASE/mcp_servers.php")
+            .header("Authorization", "Bearer $token")
+            .post(payload.toString().toRequestBody(jsonType))
+            .build()
+        llmClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    callback(Result.failure(Exception(json.optString("error", "Save failed"))))
+                    return
+                }
+                val server = json.optJSONObject("data")?.optJSONObject("server")
+                    ?: json.optJSONObject("data")
+                val parsed = parseMcpServer(server)
+                if (parsed == null) {
+                    callback(Result.failure(Exception("Invalid server response")))
+                } else {
+                    callback(Result.success(parsed))
+                }
+            }
+        })
+    }
+
+    private fun parseMcpServer(o: JSONObject?): McpServer? {
+        if (o == null) return null
+        val id = o.optInt("id", 0)
+        if (id <= 0) return null
+        val tools = mutableListOf<McpTool>()
+        val arr = o.optJSONArray("tools")
+        if (arr != null) {
+            for (i in 0 until arr.length()) {
+                val t = arr.optJSONObject(i) ?: continue
+                val n = t.optString("name", "").trim()
+                if (n.isEmpty()) continue
+                tools.add(McpTool(n, t.optString("description", "")))
+            }
+        }
+        return McpServer(
+            id = id,
+            name = o.optString("name", ""),
+            slug = o.optString("slug", ""),
+            transport = o.optString("transport", "sse"),
+            url = o.optString("url", ""),
+            command = o.optString("command", ""),
+            enabled = o.optBoolean("enabled", true),
+            requireConfirm = o.optBoolean("require_confirm", true),
+            timeoutSec = o.optInt("timeout_sec", 60),
+            toolsCount = o.optInt("tools_count", tools.size),
+            lastError = if (o.isNull("last_error")) null
+            else o.optString("last_error", "").takeIf { it.isNotBlank() },
+            hasAuthToken = o.optBoolean("has_auth_token", false),
+            tools = tools,
+        )
+    }
+
+    fun llmHistoryNewThread(token: String, callback: (Result<String?>) -> Unit) {
+        val payload = JSONObject().put("action", "new").toString().toRequestBody(jsonType)
+        val request = Request.Builder()
+            .url("$BASE/llm_history.php")
+            .header("Authorization", "Bearer $token")
+            .post(payload)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = callback(Result.failure(e))
+            override fun onResponse(call: Call, response: Response) {
+                val json = parseJson(response)
+                if (!json.optBoolean("ok")) {
+                    if (response.code == 503) {
+                        callback(Result.success(null))
+                        return
+                    }
+                    callback(Result.failure(Exception(json.optString("error", "New thread failed"))))
+                    return
+                }
+                val data = json.optJSONObject("data")
+                val tid = if (data == null || data.isNull("thread_id")) null
+                else data.optString("thread_id", "").takeIf { it.isNotBlank() }
+                callback(Result.success(tid))
             }
         })
     }
